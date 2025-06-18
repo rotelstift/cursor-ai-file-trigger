@@ -176,9 +176,12 @@ async function sendToChat(message: string, fileName: string, eventType: string):
   const config = vscode.workspace.getConfiguration('aiFileTrigger');
   const autoCopyToClipboard = config.get<boolean>('autoCopyToClipboard', true);
   const autoOpenChat = config.get<boolean>('autoOpenChat', true);
+  const autoSubmitToChat = config.get<boolean>('autoSubmitToChat', true);
 
   try {
     let clipboardCopied = false;
+    let chatOpened = false;
+    let messageSubmitted = false;
     
     // クリップボードにコピー（設定で有効な場合）
     if (autoCopyToClipboard) {
@@ -186,29 +189,52 @@ async function sendToChat(message: string, fileName: string, eventType: string):
       clipboardCopied = true;
     }
     
-    let chatOpened = false;
-    
     // チャットを自動で開く（設定で有効な場合）
     if (autoOpenChat) {
       try {
         await vscode.commands.executeCommand('aichat.newchataction');
         chatOpened = true;
         console.log(`Successfully opened chat with command: aichat.newchataction`);
+        
+        // チャットが開かれるまで少し待機
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // クリップボード経由でプロンプトを送信（設定で有効な場合）
+        if (autoSubmitToChat && clipboardCopied) {
+          try {
+            // チャット入力欄にフォーカスを当ててペースト・送信
+            await vscode.commands.executeCommand('aichat.newfollowupaction');
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            // 入力欄をクリアしてからペースト
+            // await vscode.commands.executeCommand('editor.action.selectAll');
+            await vscode.commands.executeCommand('execPaste');
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            // workbench.action.chat.submit で送信
+            await vscode.commands.executeCommand('workbench.action.chat.submit');
+            messageSubmitted = true;
+            console.log(`Successfully submitted via clipboard with command: workbench.action.chat.submit`);
+          } catch (error) {
+            console.log('Clipboard paste and submit method failed:', error);
+          }
+        }
+        
       } catch (commandError) {
         console.log(`Command aichat.newchataction failed:`, commandError);
       }
     }
-
-    // 少し待機
-    await new Promise(resolve => setTimeout(resolve, 300));
     
     // 通知メッセージを構築
-    let notificationMessage = `🤖 ファイル分析プロンプトを準備しました: ${fileName}`;
+    let notificationMessage = `🤖 ファイル分析プロンプト: ${fileName}`;
     if (clipboardCopied) {
       notificationMessage += '\n📋 クリップボードにコピー済み';
     }
     if (chatOpened) {
       notificationMessage += '\n💬 チャットビューを開きました';
+    }
+    if (messageSubmitted) {
+      notificationMessage += '\n✅ プロンプトを自動送信しました';
     }
     
     const actions: string[] = [];
@@ -217,6 +243,9 @@ async function sendToChat(message: string, fileName: string, eventType: string):
     }
     if (!chatOpened) {
       actions.push('チャットを開く');
+    }
+    if (!messageSubmitted && chatOpened) {
+      actions.push('手動送信');
     }
     actions.push('OK');
     
@@ -231,12 +260,17 @@ async function sendToChat(message: string, fileName: string, eventType: string):
       await vscode.env.clipboard.writeText(message);
       vscode.window.showInformationMessage('📋 クリップボードにコピーしました');
     } else if (action === 'チャットを開く') {
-      // チャットコマンドを再試行
       try {
         await vscode.commands.executeCommand('aichat.newchataction');
+        if (!clipboardCopied) {
+          await vscode.env.clipboard.writeText(message);
+        }
+        vscode.window.showInformationMessage('💬 チャットを開きました');
       } catch (commandError) {
         console.log('Failed to open chat:', commandError);
       }
+    } else if (action === '手動送信') {
+      vscode.window.showInformationMessage('💡 チャット欄にペースト（Ctrl+V）して送信してください');
     }
 
   } catch (error) {
