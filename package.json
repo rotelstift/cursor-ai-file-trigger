@@ -13,6 +13,9 @@
   "activationEvents": [
     "onStartupFinished"
   ],
+  "enabledApiProposals": [
+    "chatParticipantAdditions"
+  ],
   "main": "dist/extension.js",
   "contributes": {
     "commands": [
@@ -60,6 +63,16 @@
           "type": "number",
           "default": 2000,
           "description": "ファイル変更後、AIプロンプト実行までの遅延時間（ミリ秒）"
+        },
+        "aiFileTrigger.autoCopyToClipboard": {
+          "type": "boolean",
+          "default": true,
+          "description": "プロンプトを自動的にクリップボードにコピーするかどうか"
+        },
+        "aiFileTrigger.autoOpenChat": {
+          "type": "boolean",
+          "default": true,
+          "description": "チャットビューを自動的に開くかどうか"
         }
       }
     }

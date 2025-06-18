@@ -172,28 +172,124 @@ async function runAIPrompt(uri: vscode.Uri, eventType: string) {
   }
 }
 
-async function simulateAIResponse(fileContent: string, prompt: string, fileName: string, eventType: string): Promise<string> {
-  // 実際のAI APIの代わりにシミュレーション
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const lines = fileContent.split('\n').length;
-      const chars = fileContent.length;
-      const words = fileContent.split(/\s+/).length;
-      
-      // ファイルタイプの判定
-      const extension = path.extname(fileName).toLowerCase();
-      let fileType = 'テキスト';
-      if (['.ts', '.js', '.tsx', '.jsx'].includes(extension)) {
-        fileType = 'JavaScript/TypeScript';
-      } else if (['.py'].includes(extension)) {
-        fileType = 'Python';
-      } else if (['.java'].includes(extension)) {
-        fileType = 'Java';
-      } else if (['.cpp', '.c', '.h'].includes(extension)) {
-        fileType = 'C/C++';
-      }
+async function sendToChat(message: string, fileName: string, eventType: string): Promise<void> {
+  const config = vscode.workspace.getConfiguration('aiFileTrigger');
+  const autoCopyToClipboard = config.get<boolean>('autoCopyToClipboard', true);
+  const autoOpenChat = config.get<boolean>('autoOpenChat', true);
 
-      const response = `# 🤖 AI ファイル分析結果
+  try {
+    let clipboardCopied = false;
+    
+    // クリップボードにコピー（設定で有効な場合）
+    if (autoCopyToClipboard) {
+      await vscode.env.clipboard.writeText(message);
+      clipboardCopied = true;
+    }
+    
+    let chatOpened = false;
+    
+    // チャットを自動で開く（設定で有効な場合）
+    if (autoOpenChat) {
+      try {
+        await vscode.commands.executeCommand('aichat.newchataction');
+        chatOpened = true;
+        console.log(`Successfully opened chat with command: aichat.newchataction`);
+      } catch (commandError) {
+        console.log(`Command aichat.newchataction failed:`, commandError);
+      }
+    }
+
+    // 少し待機
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // 通知メッセージを構築
+    let notificationMessage = `🤖 ファイル分析プロンプトを準備しました: ${fileName}`;
+    if (clipboardCopied) {
+      notificationMessage += '\n📋 クリップボードにコピー済み';
+    }
+    if (chatOpened) {
+      notificationMessage += '\n💬 チャットビューを開きました';
+    }
+    
+    const actions: string[] = [];
+    if (!clipboardCopied) {
+      actions.push('クリップボードにコピー');
+    }
+    if (!chatOpened) {
+      actions.push('チャットを開く');
+    }
+    actions.push('OK');
+    
+    // ユーザーに通知
+    const action = await vscode.window.showInformationMessage(
+      notificationMessage,
+      ...actions
+    );
+    
+    // アクションの処理
+    if (action === 'クリップボードにコピー') {
+      await vscode.env.clipboard.writeText(message);
+      vscode.window.showInformationMessage('📋 クリップボードにコピーしました');
+    } else if (action === 'チャットを開く') {
+      // チャットコマンドを再試行
+      try {
+        await vscode.commands.executeCommand('aichat.newchataction');
+      } catch (commandError) {
+        console.log('Failed to open chat:', commandError);
+      }
+    }
+
+  } catch (error) {
+    console.error('Chat send error:', error);
+    // フォールバック: クリップボードにコピーのみ
+    await vscode.env.clipboard.writeText(message);
+    vscode.window.showWarningMessage(
+      `チャット機能が利用できませんが、プロンプトをクリップボードにコピーしました: ${fileName}`
+    );
+  }
+}
+
+async function simulateAIResponse(fileContent: string, prompt: string, fileName: string, eventType: string): Promise<string> {
+  try {
+    // ファイル情報を取得
+    const lines = fileContent.split('\n').length;
+    const chars = fileContent.length;
+    const extension = path.extname(fileName).toLowerCase();
+    
+    // ファイルタイプの判定
+    let fileType = 'テキスト';
+    if (['.ts', '.js', '.tsx', '.jsx'].includes(extension)) {
+      fileType = 'JavaScript/TypeScript';
+    } else if (['.py'].includes(extension)) {
+      fileType = 'Python';
+    } else if (['.java'].includes(extension)) {
+      fileType = 'Java';
+    } else if (['.cpp', '.c', '.h'].includes(extension)) {
+      fileType = 'C/C++';
+    }
+
+    // チャットに送信するプロンプトを構築
+    const chatPrompt = `${prompt}
+
+📁 **ファイル情報**
+- ファイル名: ${fileName}
+- ファイルタイプ: ${fileType}  
+- イベント: ${eventType}
+- 行数: ${lines}行
+- 文字数: ${chars}文字
+
+📄 **ファイル内容:**
+\`\`\`${extension.substring(1) || 'text'}
+${fileContent}
+\`\`\`
+
+上記のファイルを分析して、コードの品質、改善点、セキュリティ考慮点、パフォーマンス改善点について日本語でアドバイスしてください。`;
+
+    // チャットウィンドウに送信
+    await sendToChat(chatPrompt, fileName, eventType);
+
+    // 分析結果のプレースホルダーを返す
+    const response = `# 🤖 AI ファイル分析結果
 
 ## 📁 ファイル情報
 - **ファイル名**: ${fileName}
@@ -201,32 +297,29 @@ async function simulateAIResponse(fileContent: string, prompt: string, fileName:
 - **ファイルタイプ**: ${fileType}
 - **行数**: ${lines}行
 - **文字数**: ${chars}文字
-- **単語数**: ${words}語
 
 ## 🎯 実行プロンプト
 ${prompt}
 
-## 📊 分析結果
-このファイルは${lines}行の${fileType}コードを含んでいます。
-
-### ✅ 推奨事項
-1. **コメント**: コードの可読性向上のため、重要な処理にコメントを追加することを推奨します
-2. **エラーハンドリング**: 例外処理の追加を検討してください
-3. **テスト**: ユニットテストの作成を推奨します
-4. **パフォーマンス**: 処理効率の最適化を検討してください
-
-### 🔍 コード品質
-- 構造: 良好
-- 可読性: 向上の余地あり
-- 保守性: 標準的
+## 💬 チャット送信完了
+ファイル分析のプロンプトをチャットウィンドウに送信しました。
+チャットパネルでAIの応答を確認してください。
 
 ---
-*分析時刻: ${new Date().toLocaleString('ja-JP')}*
-*AI File Trigger 拡張機能により自動生成*`;
+*送信時刻: ${new Date().toLocaleString('ja-JP')}*
+*AI File Trigger 拡張機能により自動送信*`;
 
-      resolve(response);
-    }, 1500); // リアルなAI処理時間をシミュレート
-  });
+    return response;
+
+  } catch (error: any) {
+    console.error('Chat send error:', error);
+    return `# ❌ エラー
+
+チャットへの送信中にエラーが発生しました: ${error.message}
+
+---
+*エラー時刻: ${new Date().toLocaleString('ja-JP')}*`;
+  }
 }
 
 async function showAIResponse(fileName: string, eventType: string, response: string) {
