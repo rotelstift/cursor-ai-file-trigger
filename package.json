@@ -1,34 +1,79 @@
 {
   "name": "cursor-ai-file-trigger",
   "displayName": "Cursor AI File Trigger",
-  "description": "ファイルの変更をトリガーとしてAIプロンプトを実行するCursor拡張機能",
+  "description": "ファイルの変更をトリガーとしてAIプロンプトを自動実行します",
   "version": "0.0.1",
   "publisher": "your-name",
   "engines": {
-    "cursor": ">=0.20.0"
+    "vscode": "^1.74.0"
   },
   "categories": [
     "Other"
   ],
   "activationEvents": [
-    "*"
+    "onStartupFinished"
   ],
   "main": "dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "cursor-ai-file-trigger.runPromptOnFileChange",
-        "title": "Run AI Prompt on File Change"
+        "command": "aiFileTrigger.enable",
+        "title": "Enable AI File Trigger"
+      },
+      {
+        "command": "aiFileTrigger.disable",
+        "title": "Disable AI File Trigger"
+      },
+      {
+        "command": "aiFileTrigger.showStatus",
+        "title": "Show AI File Trigger Status"
       }
-    ]
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "AI File Trigger",
+      "properties": {
+        "aiFileTrigger.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "AI File Triggerを有効にするかどうか"
+        },
+        "aiFileTrigger.filePatterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["**/*.{ts,js,tsx,jsx,py,java,cpp,c,h}"],
+          "description": "監視対象のファイルパターン（glob形式）"
+        },
+        "aiFileTrigger.prompt": {
+          "type": "string",
+          "default": "このファイルの変更内容を確認し、コードの品質や改善点についてアドバイスしてください。",
+          "description": "ファイル変更時に実行するAIプロンプト"
+        },
+        "aiFileTrigger.showNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "AI実行時に通知を表示するかどうか"
+        },
+        "aiFileTrigger.delayMs": {
+          "type": "number",
+          "default": 2000,
+          "description": "ファイル変更後、AIプロンプト実行までの遅延時間（ミリ秒）"
+        }
+      }
+    }
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "watch": "tsc -w",
+    "debug": "npm run build",
+    "package": "vsce package"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "@types/vscode": "^1.101.0",
-    "typescript": "^5.0.0",
-    "vscode": "^1.1.37"
-  }
+    "@types/vscode": "^1.74.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {}
 }
