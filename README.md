@@ -7,41 +7,185 @@
 ## ⚠️ 重要な注意事項
 
 - **この拡張機能はCursor専用です**
-- VSCodeでは多分動作しません
+- VSCodeでは動作しません（Cursorの特定のコマンドを使用するため）
 - Cursorをお持ちでない場合は、[cursor.com](https://cursor.com/)からダウンロードしてください
 
-## 機能
+## 🚀 機能概要
 
-- ファイル変更の自動検知
-- Cursor AI チャットとの自動連携
-- ファイルパターン毎のカスタムプロンプト設定
-- `@filename` 形式での効率的なファイル参照
+### 主な機能
+- **ファイル変更の自動検知**: TypeScript、JavaScript、Python、C++などのファイル変更を監視
+- **Cursor AI チャットとの自動連携**: ファイル変更時に自動でCursorのAIチャットを起動
+- **ファイルパターン毎のカスタムプロンプト**: ファイル種別に応じて最適化されたプロンプトを設定
+- **`@filename` 形式での効率的なファイル参照**: ファイル内容を直接コピーせず、Cursorの`@`記法を使用
+- **クリップボード連携**: プロンプトを自動でクリップボードにコピーしてペースト準備完了
 
-## インストール
+### 動作の流れ
+1. 📝 ファイルを編集・保存
+2. ⏱️ 設定した遅延時間（デフォルト2秒）後に処理開始
+3. 📋 `@filename プロンプト` 形式でクリップボードにコピー
+4. 💬 Cursorのチャットパネルを自動で開く
+5. 📨 チャット入力欄にフォーカスして自動ペースト
+6. ✋ ユーザーがEnterキーを押して送信（手動）
 
-### 方法1: 手動インストール
-1. [Releases](https://github.com/rotelstift/cursor-ai-file-trigger/releases)から最新の`.vsix`ファイルをダウンロード
-2. Cursorで `Ctrl+Shift+P` → "Extensions: Install from VSIX..."
-3. ダウンロードした`.vsix`ファイルを選択
+## 📦 インストール方法
 
-## 設定例
+### ステップ1: 拡張機能のダウンロード
+1. [Releases](https://github.com/rotelstift/cursor-ai-file-trigger/releases)ページにアクセス
+2. 最新バージョンの `.vsix` ファイルをダウンロード
+
+### ステップ2: Cursorへのインストール
+1. Cursorを起動
+2. `Ctrl+Shift+P` (Macの場合は `Cmd+Shift+P`) でコマンドパレットを開く
+3. `Extensions: Install from VSIX...` と入力して選択
+4. ダウンロードした `.vsix` ファイルを選択
+5. インストール完了後、Cursorを再起動
+
+### ステップ3: 動作確認
+1. 適当なTypeScriptまたはJavaScriptファイルを開く
+2. ファイルを編集して保存
+3. 2秒後に通知が表示され、チャットパネルが開くことを確認
+
+## ⚙️ 設定方法
+
+### ファイルパターンとプロンプトの設定
+
+最も重要な設定は `filePatternConfigs` です。これにより、ファイル種別ごとに最適なプロンプトを設定できます。
+
+Cursorの設定ファイル (`settings.json`) を開いて任意に変更してください。
 
 ```json
 {
   "aiFileTrigger.filePatternConfigs": [
     {
-      "pattern": "**/*.{ts,js,tsx,jsx}",
-      "prompt": "このTypeScript/JavaScriptファイルを分析して、Cursorでの開発効率を上げるアドバイスをください。"
+      "pattern": "**/*.{ts,tsx}",
+      "prompt": "このTypeScriptファイルを分析して、型安全性、パフォーマンス、React/Next.jsのベストプラクティスについてアドバイスしてください。特にバグの可能性や改善提案があれば教えてください。"
+    },
+    {
+      "pattern": "**/*.{js,jsx}",
+      "prompt": "このJavaScriptファイルを分析して、ES6+の活用、パフォーマンス、潜在的なバグについてアドバイスしてください。TypeScript化の提案もお願いします。"
+    },
+    {
+      "pattern": "**/*.py",
+      "prompt": "このPythonファイルを分析して、PEP8準拠、パフォーマンス最適化、セキュリティの脆弱性、型ヒントの改善について日本語でアドバイスしてください。"
+    },
+    {
+      "pattern": "**/*.{cpp,c,h}",
+      "prompt": "このC/C++ファイルを分析して、メモリ管理、パフォーマンス、セキュリティの脆弱性、モダンC++の活用について詳しくアドバイスしてください。"
+    },
+    {
+      "pattern": "**/*.{css,scss,sass}",
+      "prompt": "このCSSファイルを分析して、パフォーマンス、保守性、アクセシビリティ、モダンCSS技術の活用について改善提案をください。"
+    },
+    {
+      "pattern": "**/*.md",
+      "prompt": "このMarkdownファイルの文書構造、読みやすさ、技術文書としての品質を評価して、改善提案をお願いします。"
     }
   ]
 }
 ```
 
-## サポート
+## 📖 使用例
 
-- [GitHub Issues](https://github.com/your-username/cursor-ai-file-trigger/issues)
-- [Cursor Community](https://cursor.sh/community)
+### 例1: TypeScriptファイルの編集
+1. `src/components/Button.tsx` を編集
+2. ファイルを保存
+3. 2秒後に以下が自動実行：
+   - クリップボードに `@src/components/Button.tsx このTypeScriptファイルを分析して...` がコピー
+   - Cursorのチャットパネルが開く
+   - チャット入力欄にプロンプトがペーストされた状態になる
+4. Enterキーを押してAIに送信
 
-## ライセンス
+### 例2: 複数ファイルの同時編集
+- 複数のファイルを短時間で編集した場合、遅延時間内であれば最後の変更のみが処理されます
+- これにより、連続した編集で大量のプロンプトが生成されることを防げます
 
-MIT License
+## 🔧 コマンド
+
+拡張機能には以下のコマンドが用意されています：
+
+| コマンド | 説明 | ショートカット |
+|---------|------|-------------- |
+| `AI File Trigger: Enable` | 拡張機能を有効化 | - |
+| `AI File Trigger: Disable` | 拡張機能を無効化 | - |
+| `AI File Trigger: Show Status` | 現在の設定状況を表示 | - |
+
+これらのコマンドは `Ctrl+Shift+P` でコマンドパレットを開いて実行できます。
+
+## 🎯 効果的な使い方のコツ
+
+### 1. プロンプトのカスタマイズ
+- プロジェクトの特性に応じてプロンプトを調整しましょう
+- 使用しているフレームワーク（React、Vue、Djangoなど）を明記すると、より的確なアドバイスが得られます
+
+### 2. 遅延時間の調整
+- 高速でファイルを編集する場合は `delayMs` を長めに設定（3000-5000ms）
+- じっくり編集する場合は短めに設定（1000-2000ms）
+
+### 3. 対象ファイルの絞り込み
+- 大きなプロジェクトでは、重要なディレクトリのみに限定するパターンを設定
+- 例: `"pattern": "src/**/*.{ts,tsx}"` （srcディレクトリのみ）
+
+## 🚨 トラブルシューティング
+
+### チャットパネルが開かない
+**原因**: Cursorのコマンドが見つからない
+**解決策**:
+1. Cursorを最新版に更新
+2. Cursorを再起動
+3. 拡張機能を再インストール
+
+### プロンプトがペーストされない
+**原因**: クリップボードアクセスの権限不足
+**解決策**:
+1. Cursorにクリップボードアクセス権限を付与
+2. `autoCopyToClipboard` 設定を確認
+3. 手動でクリップボードの内容を確認（`Ctrl+V`）
+
+### 対象ファイルが監視されない
+**原因**: ファイルパターンの設定ミス
+**解決策**:
+1. `AI File Trigger: Show Status` コマンドで設定を確認
+2. Globパターンの書き方を見直し（例: `**/*.js` は正しい、`*.js` は現在のディレクトリのみ）
+
+### 処理が重い・遅い
+**原因**: 大量のファイルが監視対象になっている
+**解決策**:
+1. `delayMs` を長くする
+2. パターンを具体的にして監視ファイルを限定
+3. 不要なパターンを削除
+
+## 🆘 よくある質問 (FAQ)
+
+**Q: VSCodeでも使えますか？**
+A: いいえ、この拡張機能はCursor専用です。Cursorの特定のAIチャット機能を使用するため、VSCodeでは動作しません。
+
+**Q: プロンプトの言語を英語にできますか？**
+A: はい、`filePatternConfigs` の `prompt` 部分を英語で書き換えてください。
+
+**Q: 自動送信はできませんか？**
+A: セキュリティと確実性の観点から、現在は手動送信のみサポートしています。ユーザーがプロンプトを確認してから送信することを推奨します。
+
+**Q: 特定のディレクトリを除外したい**
+A: パターンで除外するか、Cursorの `.gitignore` や `.cursorignore` ファイルを活用してください。
+
+**Q: 商用プロジェクトで使用できますか？**
+A: はい、MITライセンスの下で商用利用可能です。
+
+## 🤝 サポート・コミュニティ
+
+- **バグ報告・機能要望**: [GitHub Issues](https://github.com/rotelstift/cursor-ai-file-trigger/issues)
+- **ディスカッション**: [GitHub Discussions](https://github.com/rotelstift/cursor-ai-file-trigger/discussions)
+- **Cursorコミュニティ**: [Cursor Community](https://cursor.com/community)
+
+## 📄 ライセンス
+
+MIT License - 詳細は [LICENSE](LICENSE) ファイルをご覧ください。
+
+---
+
+**開発者向け情報**
+- TypeScript製
+- VSCode Extension API使用
+- Cursor固有のコマンド連携
+
+この拡張機能がCursorでの開発体験向上に役立てば幸いです！ 🚀
