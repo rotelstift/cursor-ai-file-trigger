@@ -120,44 +120,11 @@ async function scheduleAIPrompt(uri: vscode.Uri, eventType: string) {
     
     try {
       const fileName = path.basename(uri.fsPath);
-      
-      // ファイル内容を読み取り
-      const document = await vscode.workspace.openTextDocument(uri);
-      const fileContent = document.getText();
-      
-      // ファイル情報を取得
-      const lines = fileContent.split('\n').length;
-      const chars = fileContent.length;
-      const extension = path.extname(fileName).toLowerCase();
-      
-      // ファイルタイプの判定
-      let fileType = 'テキスト';
-      if (['.ts', '.js', '.tsx', '.jsx'].includes(extension)) {
-        fileType = 'JavaScript/TypeScript';
-      } else if (['.py'].includes(extension)) {
-        fileType = 'Python';
-      } else if (['.java'].includes(extension)) {
-        fileType = 'Java';
-      } else if (['.cpp', '.c', '.h'].includes(extension)) {
-        fileType = 'C/C++';
-      }
+      const relativePath = vscode.workspace.asRelativePath(uri, false);
 
-      // チャットに送信するプロンプトを構築
-      const chatPrompt = `${prompt}
-
-📁 **ファイル情報**
-- ファイル名: ${fileName}
-- ファイルタイプ: ${fileType}  
-- イベント: ${eventType}
-- 行数: ${lines}行
-- 文字数: ${chars}文字
-
-📄 **ファイル内容:**
-\`\`\`${extension.substring(1) || 'text'}
-${fileContent}
-\`\`\`
-
-上記のファイルを分析して、コードの品質、改善点、セキュリティ考慮点、パフォーマンス改善点について日本語でアドバイスしてください。`;
+      // @filename 形式を使ったプロンプトを構築
+      const chatPrompt = `@${relativePath}
+${prompt}`;
 
       // チャットウィンドウに送信
       await sendToChat(chatPrompt, fileName, eventType);
@@ -226,6 +193,8 @@ async function sendToChat(message: string, fileName: string, eventType: string):
             // チャット入力欄にフォーカスを当ててペースト・送信
             await vscode.commands.executeCommand('aichat.newfollowupaction');
             await new Promise(resolve => setTimeout(resolve, 200));
+
+            await vscode.commands.executeCommand('aipopup.action.addContextToBackgroundForCmdK');
             
             // クリップボードの内容をペースト
             await vscode.commands.executeCommand('execPaste');
