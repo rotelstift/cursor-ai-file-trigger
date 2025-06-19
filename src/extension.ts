@@ -13,7 +13,20 @@ interface FilePatternConfig {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log('AI File Trigger 拡張機能が有効になりました');
+  // Cursorかどうかをチェック
+  if (!isCursorEditor()) {
+    vscode.window.showWarningMessage(
+      '⚠️ この拡張機能はCursor専用です。Cursorをご利用ください。',
+      'Cursorについて詳しく'
+    ).then(selection => {
+      if (selection === 'Cursorについて詳しく') {
+        vscode.env.openExternal(vscode.Uri.parse('https://cursor.sh/'));
+      }
+    });
+    return;
+  }
+
+  console.log('Cursor AI File Trigger 拡張機能が有効になりました（Cursor環境で実行中）');
 
   // ステータスバーアイテムを作成
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
@@ -347,4 +360,17 @@ function updateStatusBar() {
   }
   
   statusBarItem.show();
+}
+
+function isCursorEditor(): boolean {
+  // Cursorの識別方法
+  const appName = vscode.env.appName;
+  const appRoot = vscode.env.appRoot;
+  
+  // Cursorの場合の識別条件
+  return appName.toLowerCase().includes('cursor') || 
+         appRoot.toLowerCase().includes('cursor') ||
+         process.env.VSCODE_PID !== undefined && 
+         (process.argv.some(arg => arg.includes('cursor')) || 
+          process.title.toLowerCase().includes('cursor'));
 } 
