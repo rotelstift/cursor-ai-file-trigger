@@ -41,18 +41,36 @@
           "default": true,
           "description": "AI File Triggerを有効にするかどうか"
         },
-        "aiFileTrigger.filePatterns": {
+        "aiFileTrigger.filePatternConfigs": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string",
+                "description": "ファイルパターン（glob形式）"
+              },
+              "prompt": {
+                "type": "string",
+                "description": "AIプロンプト"
+              }
+            }
           },
-          "default": ["**/*.{ts,js,tsx,jsx,py,java,cpp,c,h}"],
-          "description": "監視対象のファイルパターン（glob形式）"
-        },
-        "aiFileTrigger.prompt": {
-          "type": "string",
-          "default": "このファイルの変更内容を確認し、コードの品質や改善点についてアドバイスしてください。",
-          "description": "ファイル変更時に実行するAIプロンプト"
+          "default": [
+            {
+              "pattern": "**/*.{ts,js,tsx,jsx}",
+              "prompt": "このTypeScript/JavaScriptファイルを分析して、型安全性、パフォーマンス、React のベストプラクティスについてアドバイスしてください。"
+            },
+            {
+              "pattern": "**/*.py",
+              "prompt": "このPythonファイルを分析して、PEP8準拠、パフォーマンス、セキュリティについてアドバイスしてください。"
+            },
+            {
+              "pattern": "**/*.{cpp,c,h}",
+              "prompt": "このC/C++ファイルを分析して、メモリ管理、パフォーマンス、セキュリティの脆弱性についてアドバイスしてください。"
+            }
+          ],
+          "description": "ファイルパターンとAIプロンプトの設定"
         },
         "aiFileTrigger.showNotifications": {
           "type": "boolean",

@@ -6,6 +6,12 @@ let fileWatchers: vscode.FileSystemWatcher[] = [];
 let statusBarItem: vscode.StatusBarItem;
 let pendingPrompts = new Map<string, NodeJS.Timeout>();
 
+// ファイルパターンとプロンプトの型定義
+interface FilePatternConfig {
+  pattern: string;
+  prompt: string;
+}
+
 export function activate(context: vscode.ExtensionContext) {
   console.log('AI File Trigger 拡張機能が有効になりました');
 
@@ -73,24 +79,51 @@ function setupFileWatchers(context: vscode.ExtensionContext) {
     return;
   }
 
-  const filePatterns = config.get<string[]>('filePatterns', ['**/*.{ts,js,tsx,jsx,py,java,cpp,c,h}']);
+  const filePatternConfigs = getFilePatternConfigs(config);
 
-  filePatterns.forEach(pattern => {
-    const watcher = vscode.workspace.createFileSystemWatcher(pattern);
+  filePatternConfigs.forEach((patternConfig, index) => {
+    const watcher = vscode.workspace.createFileSystemWatcher(patternConfig.pattern);
 
     watcher.onDidChange(async (uri: vscode.Uri) => {
-      await scheduleAIPrompt(uri, '変更');
+      await scheduleAIPrompt(uri, '変更', patternConfig.prompt);
     });
 
     watcher.onDidCreate(async (uri: vscode.Uri) => {
-      await scheduleAIPrompt(uri, '作成');
+      await scheduleAIPrompt(uri, '作成', patternConfig.prompt);
     });
 
     fileWatchers.push(watcher);
     context.subscriptions.push(watcher);
   });
 
-  console.log(`ファイルウォッチャーを設定しました: ${filePatterns.join(', ')}`);
+  console.log(`ファイルウォッチャーを設定しました: ${filePatternConfigs.map(c => c.pattern).join(', ')}`);
+}
+
+function getFilePatternConfigs(config: vscode.WorkspaceConfiguration): FilePatternConfig[] {
+  const filePatternConfigs = config.get<FilePatternConfig[]>('filePatternConfigs', []);
+  
+  // 設定が空の場合はデフォルト設定を返す
+  if (filePatternConfigs.length === 0) {
+    return [
+      {
+        pattern: '**/*.{ts,js,tsx,jsx}',
+        prompt: 'このTypeScript/JavaScriptファイルを分析して、コードの品質や改善点についてアドバイスしてください。'
+      },
+      {
+        pattern: '**/*.py',
+        prompt: 'このPythonファイルを分析して、コードの品質や改善点についてアドバイスしてください。'
+      },
+      {
+        pattern: '**/*.{java,cpp,c,h}',
+        prompt: 'このファイルを分析して、コードの品質や改善点についてアドバイスしてください。'
+      }
+    ];
+  }
+
+  return filePatternConfigs.map(config => ({
+    pattern: config.pattern || '**/*',
+    prompt: config.prompt || 'このファイルを分析して、コードの品質や改善点についてアドバイスしてください。'
+  }));
 }
 
 function disposeWatchers() {
@@ -98,10 +131,9 @@ function disposeWatchers() {
   fileWatchers = [];
 }
 
-async function scheduleAIPrompt(uri: vscode.Uri, eventType: string) {
+async function scheduleAIPrompt(uri: vscode.Uri, eventType: string, prompt: string) {
   const config = vscode.workspace.getConfiguration('aiFileTrigger');
   const delayMs = config.get<number>('delayMs', 2000);
-  const prompt = config.get<string>('prompt', 'このファイルの変更内容を確認し、コードの品質や改善点についてアドバイスしてください。');
   const filePath = uri.fsPath;
 
   // 隠しファイルやnode_modulesなどを除外
@@ -279,19 +311,23 @@ function disableTrigger() {
 function showStatus() {
   const config = vscode.workspace.getConfiguration('aiFileTrigger');
   const enabled = config.get<boolean>('enabled', true);
-  const filePatterns = config.get<string[]>('filePatterns', []);
-  const prompt = config.get<string>('prompt', '');
+  const filePatternConfigs = getFilePatternConfigs(config);
   const delayMs = config.get<number>('delayMs', 2000);
+  
+  const patternsInfo = filePatternConfigs.map((config, index) => 
+    `${index + 1}. ${config.pattern}: ${config.prompt.substring(0, 40)}${config.prompt.length > 40 ? '...' : ''}`
+  ).join('\n');
   
   const message = `🤖 AI File Trigger ステータス
 
 **状態**: ${enabled ? '✅ 有効' : '⛔ 無効'}
-**監視パターン**: ${filePatterns.join(', ')}
 **保留中のプロンプト**: ${pendingPrompts.size}個
 **遅延時間**: ${delayMs}ms
-**プロンプト**: ${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}
 
-設定を変更するには、設定画面で "AI File Trigger" を検索してください。`;
+**ファイルパターン設定** (${filePatternConfigs.length}件):
+${patternsInfo}
+
+設定を変更するには、設定画面で "aiFileTrigger.filePatternConfigs" を検索してください。`;
 
   vscode.window.showInformationMessage(message, { modal: false });
 }
