@@ -206,15 +206,14 @@ async function sendToChat(message: string, fileName: string, eventType: string):
             await vscode.commands.executeCommand('aichat.newfollowupaction');
             await new Promise(resolve => setTimeout(resolve, 200));
             
-            // 入力欄をクリアしてからペースト
-            // await vscode.commands.executeCommand('editor.action.selectAll');
+            // クリップボードの内容をペースト
             await vscode.commands.executeCommand('execPaste');
             await new Promise(resolve => setTimeout(resolve, 200));
             
-            // workbench.action.chat.submit で送信
-            await vscode.commands.executeCommand('workbench.action.chat.submit');
+            // interactive.execute で送信
+            await vscode.commands.executeCommand('interactive.execute');
             messageSubmitted = true;
-            console.log(`Successfully submitted via clipboard with command: workbench.action.chat.submit`);
+            console.log(`Successfully submitted via clipboard with command: interactive.execute`);
           } catch (error) {
             console.log('Clipboard paste and submit method failed:', error);
           }
