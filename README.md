@@ -20,7 +20,7 @@
 ## インストール
 
 ### 方法1: 手動インストール
-1. [Releases](https://github.com/your-username/cursor-ai-file-trigger/releases)から最新の`.vsix`ファイルをダウンロード
+1. [Releases](https://github.com/rotelstift/cursor-ai-file-trigger/releases)から最新の`.vsix`ファイルをダウンロード
 2. Cursorで `Ctrl+Shift+P` → "Extensions: Install from VSIX..."
 3. ダウンロードした`.vsix`ファイルを選択
 
