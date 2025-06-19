@@ -183,7 +183,6 @@ A: はい、MITライセンスの下で商用利用可能です。
 ## 🤝 サポート・コミュニティ
 
 - **バグ報告・機能要望**: [GitHub Issues](https://github.com/rotelstift/cursor-ai-file-trigger/issues)
-- **ディスカッション**: [GitHub Discussions](https://github.com/rotelstift/cursor-ai-file-trigger/discussions)
 - **Cursorコミュニティ**: [Cursor Community](https://cursor.com/community)
 
 ## 📄 ライセンス
