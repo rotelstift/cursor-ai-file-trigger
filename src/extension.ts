@@ -194,16 +194,8 @@ async function sendToChat(message: string, fileName: string, eventType: string):
             await vscode.commands.executeCommand('aichat.newfollowupaction');
             await new Promise(resolve => setTimeout(resolve, 200));
 
-            await vscode.commands.executeCommand('aipopup.action.addContextToBackgroundForCmdK');
-            
             // クリップボードの内容をペースト
             await vscode.commands.executeCommand('execPaste');
-            await new Promise(resolve => setTimeout(resolve, 200));
-            
-            // interactive.execute で送信
-            await vscode.commands.executeCommand('interactive.execute');
-            messageSubmitted = true;
-            console.log(`Successfully submitted via clipboard with command: interactive.execute`);
           } catch (error) {
             console.log('Clipboard paste and submit method failed:', error);
           }
