@@ -101,6 +101,7 @@ function disposeWatchers() {
 async function scheduleAIPrompt(uri: vscode.Uri, eventType: string) {
   const config = vscode.workspace.getConfiguration('aiFileTrigger');
   const delayMs = config.get<number>('delayMs', 2000);
+  const prompt = config.get<string>('prompt', 'このファイルの変更内容を確認し、コードの品質や改善点についてアドバイスしてください。');
   const filePath = uri.fsPath;
 
   // 隠しファイルやnode_modulesなどを除外
@@ -116,7 +117,62 @@ async function scheduleAIPrompt(uri: vscode.Uri, eventType: string) {
   // 新しいプロンプトをスケジュール
   const timeout = setTimeout(async () => {
     pendingPrompts.delete(filePath);
-    await runAIPrompt(uri, eventType);
+    
+    try {
+      const fileName = path.basename(uri.fsPath);
+      
+      // ファイル内容を読み取り
+      const document = await vscode.workspace.openTextDocument(uri);
+      const fileContent = document.getText();
+      
+      // ファイル情報を取得
+      const lines = fileContent.split('\n').length;
+      const chars = fileContent.length;
+      const extension = path.extname(fileName).toLowerCase();
+      
+      // ファイルタイプの判定
+      let fileType = 'テキスト';
+      if (['.ts', '.js', '.tsx', '.jsx'].includes(extension)) {
+        fileType = 'JavaScript/TypeScript';
+      } else if (['.py'].includes(extension)) {
+        fileType = 'Python';
+      } else if (['.java'].includes(extension)) {
+        fileType = 'Java';
+      } else if (['.cpp', '.c', '.h'].includes(extension)) {
+        fileType = 'C/C++';
+      }
+
+      // チャットに送信するプロンプトを構築
+      const chatPrompt = `${prompt}
+
+📁 **ファイル情報**
+- ファイル名: ${fileName}
+- ファイルタイプ: ${fileType}  
+- イベント: ${eventType}
+- 行数: ${lines}行
+- 文字数: ${chars}文字
+
+📄 **ファイル内容:**
+\`\`\`${extension.substring(1) || 'text'}
+${fileContent}
+\`\`\`
+
+上記のファイルを分析して、コードの品質、改善点、セキュリティ考慮点、パフォーマンス改善点について日本語でアドバイスしてください。`;
+
+      // チャットウィンドウに送信
+      await sendToChat(chatPrompt, fileName, eventType);
+      
+      console.log(`AI分析完了: ${fileName} (${eventType})`);
+      
+    } catch (error) {
+      const config = vscode.workspace.getConfiguration('aiFileTrigger');
+      const showNotifications = config.get<boolean>('showNotifications', true);
+      
+      if (showNotifications) {
+        vscode.window.showErrorMessage(`❌ AI分析エラー: ${path.basename(uri.fsPath)} - ${error}`);
+      }
+      console.error('AI Prompt Error:', error);
+    }
   }, delayMs);
 
   pendingPrompts.set(filePath, timeout);
@@ -135,41 +191,6 @@ function shouldIgnoreFile(filePath: string): boolean {
 
   return ignorePaths.some(ignorePath => filePath.includes(ignorePath)) ||
          path.basename(filePath).startsWith('.');
-}
-
-async function runAIPrompt(uri: vscode.Uri, eventType: string) {
-  const config = vscode.workspace.getConfiguration('aiFileTrigger');
-  const prompt = config.get<string>('prompt', 'このファイルの変更内容を確認し、コードの品質や改善点についてアドバイスしてください。');
-  const showNotifications = config.get<boolean>('showNotifications', true);
-
-  const fileName = path.basename(uri.fsPath);
-  
-  try {
-    if (showNotifications) {
-      vscode.window.showInformationMessage(
-        `🤖 AI分析中: ${fileName} (${eventType})`,
-        { modal: false }
-      );
-    }
-
-    // ファイル内容を読み取り
-    const document = await vscode.workspace.openTextDocument(uri);
-    const fileContent = document.getText();
-
-    // AI実行のシミュレーション（実際のAI APIの代わり）
-    const aiResponse = await simulateAIResponse(fileContent, prompt, fileName, eventType);
-
-    // 結果を表示
-    await showAIResponse(fileName, eventType, aiResponse);
-
-    console.log(`AI分析完了: ${fileName} (${eventType})`);
-
-  } catch (error) {
-    if (showNotifications) {
-      vscode.window.showErrorMessage(`❌ AI分析エラー: ${fileName} - ${error}`);
-    }
-    console.error('AI Prompt Error:', error);
-  }
 }
 
 async function sendToChat(message: string, fileName: string, eventType: string): Promise<void> {
@@ -279,114 +300,6 @@ async function sendToChat(message: string, fileName: string, eventType: string):
     vscode.window.showWarningMessage(
       `チャット機能が利用できませんが、プロンプトをクリップボードにコピーしました: ${fileName}`
     );
-  }
-}
-
-async function simulateAIResponse(fileContent: string, prompt: string, fileName: string, eventType: string): Promise<string> {
-  try {
-    // ファイル情報を取得
-    const lines = fileContent.split('\n').length;
-    const chars = fileContent.length;
-    const extension = path.extname(fileName).toLowerCase();
-    
-    // ファイルタイプの判定
-    let fileType = 'テキスト';
-    if (['.ts', '.js', '.tsx', '.jsx'].includes(extension)) {
-      fileType = 'JavaScript/TypeScript';
-    } else if (['.py'].includes(extension)) {
-      fileType = 'Python';
-    } else if (['.java'].includes(extension)) {
-      fileType = 'Java';
-    } else if (['.cpp', '.c', '.h'].includes(extension)) {
-      fileType = 'C/C++';
-    }
-
-    // チャットに送信するプロンプトを構築
-    const chatPrompt = `${prompt}
-
-📁 **ファイル情報**
-- ファイル名: ${fileName}
-- ファイルタイプ: ${fileType}  
-- イベント: ${eventType}
-- 行数: ${lines}行
-- 文字数: ${chars}文字
-
-📄 **ファイル内容:**
-\`\`\`${extension.substring(1) || 'text'}
-${fileContent}
-\`\`\`
-
-上記のファイルを分析して、コードの品質、改善点、セキュリティ考慮点、パフォーマンス改善点について日本語でアドバイスしてください。`;
-
-    // チャットウィンドウに送信
-    await sendToChat(chatPrompt, fileName, eventType);
-
-    // 分析結果のプレースホルダーを返す
-    const response = `# 🤖 AI ファイル分析結果
-
-## 📁 ファイル情報
-- **ファイル名**: ${fileName}
-- **イベント**: ${eventType}
-- **ファイルタイプ**: ${fileType}
-- **行数**: ${lines}行
-- **文字数**: ${chars}文字
-
-## 🎯 実行プロンプト
-${prompt}
-
-## 💬 チャット送信完了
-ファイル分析のプロンプトをチャットウィンドウに送信しました。
-チャットパネルでAIの応答を確認してください。
-
----
-*送信時刻: ${new Date().toLocaleString('ja-JP')}*
-*AI File Trigger 拡張機能により自動送信*`;
-
-    return response;
-
-  } catch (error: any) {
-    console.error('Chat send error:', error);
-    return `# ❌ エラー
-
-チャットへの送信中にエラーが発生しました: ${error.message}
-
----
-*エラー時刻: ${new Date().toLocaleString('ja-JP')}*`;
-  }
-}
-
-async function showAIResponse(fileName: string, eventType: string, response: string) {
-  const config = vscode.workspace.getConfiguration('aiFileTrigger');
-  const showNotifications = config.get<boolean>('showNotifications', true);
-
-  try {
-    // 新しいドキュメントでAI応答を表示
-    const doc = await vscode.workspace.openTextDocument({
-      content: response,
-      language: 'markdown'
-    });
-
-    await vscode.window.showTextDocument(doc, {
-      viewColumn: vscode.ViewColumn.Beside,
-      preview: false
-    });
-
-    if (showNotifications) {
-      const action = await vscode.window.showInformationMessage(
-        `✅ AI分析完了: ${fileName}`,
-        '結果を確認',
-        'OK'
-      );
-      
-      if (action === '結果を確認') {
-        await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
-      }
-    }
-  } catch (error) {
-    console.error('AI応答表示エラー:', error);
-    if (showNotifications) {
-      vscode.window.showErrorMessage('AI分析結果の表示中にエラーが発生しました');
-    }
   }
 }
 
