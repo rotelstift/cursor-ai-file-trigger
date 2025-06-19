@@ -1,9 +1,21 @@
 {
   "name": "cursor-ai-file-trigger",
   "displayName": "Cursor AI File Trigger",
-  "description": "ファイルの変更をトリガーとしてAIプロンプトを自動実行します",
-  "version": "0.0.1",
-  "publisher": "your-name",
+  "description": "Cursor専用: ファイルの変更をトリガーとしてCursor AIチャットにプロンプトを自動送信",
+  "version": "1.0.0",
+  "publisher": "rotelstift",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rotelstift/cursor-ai-file-trigger"
+  },
+  "homepage": "https://github.com/rotelstift/cursor-ai-file-trigger",
+  "bugs": {
+    "url": "https://github.com/rotelstift/cursor-ai-file-trigger/issues"
+  },
+  "keywords": [
+    "cursor", "cursor-ai", "ai-chat", "file-trigger", "automation"
+  ],
+  "icon": "icon.png",
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -16,6 +28,7 @@
   "enabledApiProposals": [
     "chatParticipantAdditions"
   ],
+  "extensionDependencies": [],
   "main": "dist/extension.js",
   "contributes": {
     "commands": [
