@@ -2,13 +2,13 @@
 
 **Cursor専用拡張機能** 🎯
 
-この拡張機能は[Cursor](https://cursor.sh/)専用に設計されており、Cursorの AI チャット機能と連携してファイル変更を自動検知し、AIプロンプトを送信します。
+この拡張機能は[Cursor](https://cursor.com/)専用に設計されており、Cursorの AI チャット機能と連携してファイル変更を自動検知し、AIプロンプトを送信します。
 
 ## ⚠️ 重要な注意事項
 
 - **この拡張機能はCursor専用です**
 - VSCodeでは多分動作しません
-- Cursorをお持ちでない場合は、[cursor.sh](https://cursor.sh/)からダウンロードしてください
+- Cursorをお持ちでない場合は、[cursor.com](https://cursor.com/)からダウンロードしてください
 
 ## 機能
 
